@@ -62,6 +62,14 @@ options:
     required: false
     default: "no"
     choices: [ "yes", "no" ]
+  virtualenv_setuptools:
+    version_added: "1.X"
+    description:
+      - Use Setuptools instead of Distribute.
+        This option add --setuptools to virtualenv creation command.
+    required: false
+    default: "no"
+    choices: [ "yes", "no" ]
   virtualenv_command:
     version_aded: "1.1"
     description:
@@ -147,7 +155,7 @@ def _get_cmd_options(module, cmd):
     words = stdout.strip().split()
     cmd_options = [ x for x in words if x.startswith('--') ]
     return cmd_options
-    
+
 
 def _get_full_name(name, version=None):
     if version is None:
@@ -227,6 +235,7 @@ def main():
             requirements=dict(default=None, required=False),
             virtualenv=dict(default=None, required=False),
             virtualenv_site_packages=dict(default='no', type='bool'),
+            virtualenv_setuptools=dict(default='no', type='bool'),
             virtualenv_command=dict(default='virtualenv', required=False),
             use_mirrors=dict(default='yes', type='bool'),
             extra_args=dict(default=None, required=False),
@@ -265,13 +274,18 @@ def main():
                 virtualenv = module.get_bin_path(virtualenv_command, True)
 
             if module.params['virtualenv_site_packages']:
-                cmd = '%s --system-site-packages %s' % (virtualenv, env)
+                virtualenv_options = '%s --system-site-packages' % virtualenv
             else:
                 cmd_opts = _get_cmd_options(module, virtualenv)
                 if '--no-site-packages' in cmd_opts:
-                    cmd = '%s --no-site-packages %s' % (virtualenv, env)
+                    virtualenv_options = '%s --no-site-packages' % virtualenv
                 else:
-                    cmd = '%s %s' % (virtualenv, env)
+                    virtualenv_options = '%s' % virtualenv
+            if module.params['virtualenv_setuptools']:
+                virtualenv_options += ' --setuptools'
+
+            cmd = "%s %s" % (virtualenv_options, env)
+
             this_dir = tempfile.gettempdir()
             if chdir:
                 this_dir = os.path.join(this_dir, chdir)
